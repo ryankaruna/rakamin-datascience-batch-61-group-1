@@ -1,0 +1,10 @@
+python 3.12.12
+pandas
+numpy
+seaborn
+matplotlib.pyplot
+sklearn.feature_selection import mutual_info_regression, mutual_info_classif
+sklearn.preprocessing import StandardScaler
+sklearn.decomposition import PCA
+streamlit
+joblib
