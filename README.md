@@ -56,6 +56,6 @@ Since there are null values, invalid values and class imbalance within the datas
 The team will attempt to optimize the model by performing Hyperparameter Tuning to improve model performance as well as avoiding overfitting.
 
 ## Addendum
-To run the script, you have to download Preprocessing.py, web_apps.py, kmeans_model.pkl, and Rakamin Bootcamp - Dataset - Promotion Dataset.csv. Place the all the files in the same directory. Then, run web_apps.py using the terminal with the following command "streamlit run web_apps.py".
+To run the script, you have to download preprocessing.py, web_apps.py, kmeans_model.pkl, pca_model.pkl, scaler.pkl, and Rakamin Bootcamp - Dataset - Promotion Dataset.csv. Place the all the files in the same directory. Then, run web_apps.py using the terminal with the following command "streamlit run web_apps.py".
 
 You also need to have a .csv file with the same column names as the dataset to predict the promotion eligibility of employees.
