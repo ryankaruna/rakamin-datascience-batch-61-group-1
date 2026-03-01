@@ -13,10 +13,6 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from scipy.stats import f_oneway
-import statsmodels.api as sm
-import itertools
-from scipy.stats import chi2_contingency
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 from sklearn.preprocessing import StandardScaler
 
@@ -309,7 +305,7 @@ ax = sns.countplot(data=df, x="Promotion_Eligible")
 for container in ax.containers:
     ax.bar_label(container)
 
-ax.set_xticklabels([mapping[tick.get_text()] for tick in ax.get_xticklabels()])
+ax.set_xticklabels([mapping[tick.get_text().strip()] for tick in ax.get_xticklabels()])
 plt.title('Distribution of Promotion_Eligible')
 plt.ylabel('Frequency')
 plt.show()
@@ -612,6 +608,33 @@ def validate_data(df: pd.DataFrame) -> list[str]:
     if (df[numeric_cols] < 0).any().any():
         errors.append("Negative values found in numeric columns.")
 
+    # Invalid Value Detection
+    garbage_df, has_invalid_age = detect_limit_age(df)
+    garbage_df, has_invalid_age_tenure = detect_limit_age_tenure(df)
+    garbage_df, has_invalid_years = detect_limit_tenure(df)
+    garbage_df, has_invalid_training_hours = detect_limit_training_hours(df)
+
+    if has_invalid_age:
+        errors.append("Dataset contains invalid (either lower than 18 or higher than 65) Age values.")
+
+    if has_invalid_age_tenure:
+        errors.append("Dataset contains Age values that are too low relative to the value of Years_at_Company")
+
+    if has_invalid_years:
+        errors.append("Dataset contains invalid (either in the negatives or higher than 47) Years_at_Company values.")
+
+    if has_invalid_training_hours:
+        errors.append("Dataset contains invalid (higher than 1000) Training_Hours values.")
+
+    if ((df["Performance_Score"] > 100)).any():
+        errors.append("Dataset contains invalid (higher than 100) Performance_Score values.")
+
+    if ((df["Leadership_Score"] > 100)).any():
+        errors.append("Dataset contains invalid (higher than 100) Leadership_Score values.")
+
+    if ((df["Peer_Review_Score"] > 100)).any():
+        errors.append("Dataset contains invalid (higher than 100) Peer_Review_Score values.")
+
     return errors
 
 """## Processing Invalid Rows & Columns
@@ -629,7 +652,9 @@ def detect_limit_age(df):
   invalid_age_mask = (df["Age"] < MIN_AGE) | (df["Age"] > MAX_AGE)
   df.loc[invalid_age_mask, "Age"] = pd.NA
 
-  return df
+  has_invalid_age = invalid_age_mask.any()
+
+  return df, has_invalid_age
 
 # Fixing improbable 'Age' value when compared to 'Years_at_Company'
 def detect_limit_age_tenure(df):
@@ -645,7 +670,9 @@ def detect_limit_age_tenure(df):
   # invalidate Years_at_Company in those rows
   df.loc[invalid_tenure_mask, "Age"] = pd.NA
 
-  return df
+  has_invalid_age_tenure = invalid_tenure_mask.any()
+
+  return df, has_invalid_age_tenure
 
 """#### Detecting Invalid 'Years_at_Company'"""
 
@@ -657,7 +684,9 @@ def detect_limit_tenure(df):
   invalid_years_mask = (df["Years_at_Company"] < MIN_YEARS) | (df["Years_at_Company"] > MAX_YEARS)
   df.loc[invalid_years_mask, "Years_at_Company"] = pd.NA
 
-  return df
+  has_invalid_years = invalid_years_mask.any()
+
+  return df, has_invalid_years
 
 """#### Detecting Invalid 'Training_Hours'"""
 
@@ -671,14 +700,17 @@ def detect_limit_training_hours(df):
 
   df["Training_Hours"] = df["Training_Hours"].clip(lower=0, upper=upper)
 
-  return df
+  invalid_mask = (df["Training_Hours"] > 1000)
+  has_invalid_training_hours = invalid_mask.any()
+
+  return df, has_invalid_training_hours
 
 """### Setting Outlier Columns as Null"""
 
-df = detect_limit_age(df)
-df = detect_limit_age_tenure(df)
-df = detect_limit_tenure(df)
-df = detect_limit_training_hours(df)
+df, has_invalid_age = detect_limit_age(df)
+df, has_invalid_age_tenure = detect_limit_age_tenure(df)
+df, has_invalid_years = detect_limit_tenure(df)
+df, has_invalid_training_hours = detect_limit_training_hours(df)
 
 """### Deleting Damaged Rows"""
 
@@ -812,6 +844,8 @@ def fix_col_level(df):
 
 df = fix_col_level(df)
 
+df.describe()
+
 df.describe(include='object')
 
 """# Feature Engineering"""
@@ -834,6 +868,8 @@ def feat_normal(df):
   df['Training_Hours_log'] = np.log1p(df['Training_Hours'])
   df['Projects_Handled_log'] = np.log1p(df['Projects_Handled'])
   df['Peer_Review_Score_log'] = np.log1p(df['Peer_Review_Score'])
+  df['Avg_Score_log'] = np.log1p(df['Avg_Score'])
+  df['Projects_per_Year_log'] = np.log1p(df['Projects_per_Year'])
 
   return df
 
@@ -850,6 +886,19 @@ df = feat_encode(df)
 
 """# Feature Scaling"""
 
+def feat_scaling_non_normal(df):
+  df['Age_scaled'] = StandardScaler().fit_transform(df[['Age']])
+  df['Years_at_Company_scaled'] = StandardScaler().fit_transform(df[['Years_at_Company']])
+  df['Performance_Score_scaled'] = StandardScaler().fit_transform(df[['Performance_Score']])
+  df['Leadership_Score_scaled'] = StandardScaler().fit_transform(df[['Leadership_Score']])
+  df['Training_Hours_scaled'] = StandardScaler().fit_transform(df[['Training_Hours']])
+  df['Projects_Handled_scaled'] = StandardScaler().fit_transform(df[['Projects_Handled']])
+  df['Peer_Review_Score_scaled'] = StandardScaler().fit_transform(df[['Peer_Review_Score']])
+  df['Avg_Score_scaled'] = StandardScaler().fit_transform(df[['Avg_Score']])
+  df['Projects_per_Year_scaled'] = StandardScaler().fit_transform(df[['Projects_per_Year']])
+
+  return df
+
 def feat_scaling(df):
   df['Age_scaled'] = StandardScaler().fit_transform(df[['Age_log']])
   df['Years_at_Company_scaled'] = StandardScaler().fit_transform(df[['Years_at_Company_log']])
@@ -858,6 +907,8 @@ def feat_scaling(df):
   df['Training_Hours_scaled'] = StandardScaler().fit_transform(df[['Training_Hours_log']])
   df['Projects_Handled_scaled'] = StandardScaler().fit_transform(df[['Projects_Handled_log']])
   df['Peer_Review_Score_scaled'] = StandardScaler().fit_transform(df[['Peer_Review_Score_log']])
+  df['Avg_Score_scaled'] = StandardScaler().fit_transform(df[['Avg_Score_log']])
+  df['Projects_per_Year_scaled'] = StandardScaler().fit_transform(df[['Projects_per_Year_log']])
 
   return df
 
@@ -866,7 +917,7 @@ df = feat_scaling(df)
 """# Feature Selection"""
 
 def feat_select (df, col_list):
-  df = df.drop(columns=col_list)
+  df = df.drop(columns=col_list, errors='ignore')
 
   return df
 
