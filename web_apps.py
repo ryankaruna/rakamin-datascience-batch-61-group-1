@@ -325,9 +325,9 @@ if st.button("Run Clustering", disabled=not st.session_state.data_cleaned):
 
     # Cluster explanation
     st.write("Cluster Explanation")
-    st.write("Cluster 0 : Employees of this cluster is typically of senior age along with having long tenure, additionally, employees of this cluster typically has high leadership score but little involvement in projects")
-    st.write("Cluster 1 : Employees of this cluster is mostly young professionals with having short tenure, of note, they are typically the best performing employees with having high involvement in many projects")
-    st.write("Cluster 2 : Employees of this cluster is typically of senior age along with having the longest tenure, overall, they are highly involved in many projects")
+    st.write("Cluster 0 : Employees of this cluster is consist of mostly younger professionals with having shorter tenure, of note, they have stable performance score with having high involvement in many projects")
+    st.write("Cluster 1 : Employees of this cluster is typically of senior age along with having the longest tenure and are involved in the highest number of projects, additionally, employees of this cluster typically has moderate leadership score")
+    st.write("Cluster 2 : Employees of this cluster is typically of senior age along with having the highest leadership score, but having involved in the lowest amount of projects")
 
     # Cluster Distribution
     cluster_counts = (
